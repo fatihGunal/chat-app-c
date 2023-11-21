@@ -6,48 +6,32 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-
 #define PORT 8080
+#define BUFFER_SIZE 1024
 
-int createSocket() {
+int main() {
+    // Create a socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
     if (sockfd == -1) {
-        perror("chatserver (socket creation failed)");
+        perror("webserver (socket)");
         return 1;
     }
     printf("socket created successfully\n");
 
-    return sockfd;
-}
-struct sockaddr_in *createServerAddress(int port) {
-    struct sockaddr_in *host_addr = malloc(sizeof(struct host_addr));
+    // create the address to bind the socket to
+    struct sockaddr_in host_addr;
+    int host_addrlen = sizeof(host_addr);
 
     host_addr.sin_family = AF_INET;
-    host_addr.sin_port = htons(port);
+    host_addr.sin_port = htons(PORT);
     host_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    printf("Server address created successfully\n");
-
-    return host_addr;
-    // printf("Address Family: %d\n", host_addr.sin_family);
-    // printf("Port: %u\n", ntohs(host_addr.sin_port)); 
-    // printf("IP Address: %s\n", inet_ntoa(host_addr.sin_addr));
-}
-int main() {
-    printf("Hello chat server!\n");
-
-    int sockfd = createSocket();
-    // create address to bind socket
-    struct sockaddr_in *host_addr = createServerAddress(PORT);
-    int hostaddrlen = sizeof(host_addr);
 
     // Create client address
     struct sockaddr_in client_addr;
     int client_addrlen = sizeof(client_addr);
 
-    if (bind(sockfd, (struct sockaddr *)&host_addr, hostaddrlen) != 0) {
-        perror("webserver bind");
+    if (bind(sockfd, (struct sockaddr *)&host_addr, host_addrlen) != 0) {
+        perror("webserver (bind)");
         return 1;
     }
     printf("socket successfully bound to address\n");
@@ -58,23 +42,40 @@ int main() {
         return 1;
     }
     printf("server listening for connections\n");
+    char buffer[BUFFER_SIZE];
 
     for (;;) {
-        int newsockfd = accept(sockfd, (struct sockaddr*)&host_addr, (socklen_t *)&hostaddrlen);
+        // Accept incoming connections
+        int newsockfd = accept(sockfd, (struct sockaddr *)&host_addr, (socklen_t *)&host_addrlen);
 
         if (newsockfd < 0) {
             perror("webserver (accept)");
             continue;
         }
-        printf("Connection accepted!");
+        printf("connection accepted\n");
 
-        int sockn = getsockname(newsockfd, (struct sockaddr *)&client_addr, (socklen_t *)&client_addrlen);
+        // get client address
+        int sockn = getsockname(newsockfd, (struct sockaddr *)&client_addr,
+                                (socklen_t *)&client_addrlen);
+        if (sockn < 0) {
+            perror("webserver (getsockname)");
+            continue;
+        }
 
-        printf("Address Family: %d\n", client_addr.sin_family);
-        printf("Port: %u\n", ntohs(client_addr.sin_port));
-        printf("IP Address: %s\n", inet_ntoa(client_addr.sin_addr)); 
-        printf("%d\n", sockn);
+        ssize_t amountReceived = recv(newsockfd, buffer, BUFFER_SIZE, 0);
+
+        if (amountReceived > 0) {
+            buffer[amountReceived] = 0;
+            send(newsockfd, buffer, strlen(buffer), 0);
+            printf("%s\n",buffer);
+        }
+        if (amountReceived == 0) {
+            break;
+        }
+
         close(newsockfd);
     }
     return 0;
 }
+
+//  gcc -Wall chat-client.c -o client
