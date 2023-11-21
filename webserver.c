@@ -57,7 +57,6 @@ int main() {
     const char *filepath = "./index/index.html";
     char *resp = gethtml(filepath);
 
-    printf("%s", resp);
     // Create a socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
@@ -133,19 +132,3 @@ int main() {
     }
     return 0;
 }
-
-// void gethtml(char *filepath, char* buffer, size_t size) {
-//     FILE *htmlFile = fopen(filepath, "r");
-//     char fullFile[500] = " ";
-
-//     if (htmlFile == NULL) {
-//         perror("Error opening file");
-//     }
-
-//     if (htmlFile != NULL) {
-//         while (fgets(buffer, (sizeof buffer), htmlFile) != NULL) {
-//             strcat(fullFile, buffer);
-//         }
-//         fclose(htmlFile);
-//     }
-// }
